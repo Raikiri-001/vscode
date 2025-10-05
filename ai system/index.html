@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI UI</title>
+  <style>
+    :root{
+      --bg:#0f1724;
+      --card:#0b1220;
+      --muted:#94a3b8;
+      --accent:#7c3aed;
+      --user:#052f5f;
+      --assistant:#0f1724;
+      --bubble-user:#1e3a8a;
+      --bubble-assistant:#0b1220;
+      --glass: rgba(255,255,255,0.03);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%; margin:0; background:linear-gradient(180deg,var(--bg),#081023 120%); color:#e6eef8}
+    .wrap{min-height:100vh; display:flex; align-items:center; justify-content:center; padding:28px; gap:20px;}
+    .chat-card{width:920px; max-width:calc(100% - 48px); height:640px; display:grid; grid-template-rows:64px 1fr 84px; border-radius:14px; overflow:hidden; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); box-shadow: 0 10px 30px rgba(2,6,23,0.7), inset 0 1px 0 rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.03);}
+    .header{display:flex; align-items:center; gap:14px; padding:12px 18px; border-bottom:1px solid rgba(255,255,255,0.02);}
+    .logo{width:44px; height:44px; border-radius:10px; background:linear-gradient(135deg,var(--accent),#4f46e5); display:flex; align-items:center; justify-content:center; font-weight:700; color:white; font-size:18px; box-shadow: 0 6px 18px rgba(124,58,237,0.14);}
+    .header .title{font-weight:600}
+    .header .subtitle{font-size:13px; color:var(--muted)}
+    .hmeta{margin-left:auto; display:flex; gap:8px; align-items:center}
+    .btn{padding:8px 12px; border-radius:8px; background:var(--glass); border:1px solid rgba(255,255,255,0.02); cursor:pointer; font-size:13px}
+    .messages{padding:18px; overflow:auto; display:flex; flex-direction:column; gap:12px; scroll-behavior:smooth;}
+    .messages::after{content:''; display:block; height:8px}
+    .msg-row{display:flex; gap:12px; align-items:flex-end}
+    .msg-row.assistant{align-items:flex-start}
+    .avatar{width:36px; height:36px; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:600}
+    .avatar.user{background:linear-gradient(180deg,var(--user),#0b4d91)}
+    .avatar.assistant{background:linear-gradient(180deg,#0b1220,#0f1724); border:1px solid rgba(255,255,255,0.02)}
+    .bubble{max-width:78%; padding:12px 14px; border-radius:12px; line-height:1.4; font-size:15px; background:var(--glass); border:1px solid rgba(255,255,255,0.02)}
+    .bubble.user{background:linear-gradient(180deg,var(--bubble-user),#123575); color:white; border-bottom-right-radius:6px}
+    .bubble.assistant{background:linear-gradient(180deg,#0b1220,#071028); color: #dbeafe; border-bottom-left-radius:6px}
+    .meta{font-size:12px; color:var(--muted); margin-top:6px}
+    .composer{display:flex; gap:10px; padding:12px 16px; border-top:1px solid rgba(255,255,255,0.02); align-items:center}
+    .input{flex:1; display:flex; gap:10px; align-items:center; background:rgba(255,255,255,0.02); padding:8px 10px; border-radius:12px; border:1px dashed rgba(255,255,255,0.02)}
+    .input textarea{flex:1; min-height:44px; max-height:140px; resize:none; background:transparent; border:0; outline:0; color:inherit; font-size:15px; padding:6px}
+    .send{padding:10px 14px; border-radius:10px; background:linear-gradient(90deg,var(--accent),#4f46e5); border:0; color:white; font-weight:600; cursor:pointer}
+    .send:active{transform:translateY(1px)}
+    @media (max-width:520px){.chat-card{height:86vh}.logo{width:38px;height:38px}.bubble{font-size:14px}}
+    .typing{display:inline-block}
+    .dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:6px;opacity:0.3; animation:blink 1s infinite}
+    .dot:nth-child(2){animation-delay:0.15s}
+    .dot:nth-child(3){animation-delay:0.3s}
+    @keyframes blink{50%{opacity:1}}
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar Start -->
+  <nav style="width:100%;background:rgba(15,23,36,0.98);border-bottom:1px solid rgba(255,255,255,0.04);position:fixed;top:0;left:0;z-index:10;display:flex;align-items:center;justify-content:center;height:54px;">
+    <div style="width:920px;max-width:calc(100% - 48px);display:flex;align-items:center;gap:24px;position:relative;">
+      <!-- Menu Button Start -->
+      <button id="menuBtn" aria-label="Open menu" style="background:none;border:none;outline:none;cursor:pointer;padding:0 12px 0 0;display:flex;align-items:center;justify-content:center;height:40px;">
+        <span style="display:inline-block;width:26px;height:26px;">
+          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+            <rect y="5" width="26" height="3" rx="1.5" fill="#94a3b8"/>
+            <rect y="11.5" width="26" height="3" rx="1.5" fill="#94a3b8"/>
+            <rect y="18" width="26" height="3" rx="1.5" fill="#94a3b8"/>
+          </svg>
+        </span>
+      </button>
+      <!-- Menu Button End -->
+      <span style="font-weight:700;font-size:18px;color:#fff;letter-spacing:1px;">A.I System</span>
+      <a href="#" style="color:#94a3b8;text-decoration:none;font-size:15px;margin-left:18px;">Home</a>
+      <a href="#" style="color:#94a3b8;text-decoration:none;font-size:15px;">Docs</a>
+      <a href="#" style="color:#94a3b8;text-decoration:none;font-size:15px;">About</a>
+      <a href="#" style="color:#94a3b8;text-decoration:none;font-size:15px;">Contact</a>
+    </div>
+  </nav>
+  <!-- Navigation Bar End -->
+
+  <div class="wrap" style="padding-top:74px;">
+    <div class="chat-card" role="application" aria-label="Chat interface">
+      <div class="header">
+        <div class="logo">A.I</div>
+        <div>
+          <div class="title">A.I Interface</div>
+          <div class="subtitle"></div>
+        </div>
+        <div class="hmeta">
+          <button class="btn" id="clearBtn">Clear</button>
+        </div>
+      </div>
+
+      <main class="messages" id="messages" aria-live="polite">
+        <div class="msg-row assistant" id="welcomeRow">
+          <div class="avatar assistant">A</div>
+          <div>
+            <div class="bubble assistant">Hello! This is A.I UI. Try typing a message below and press Send.</div>
+            <div class="meta">assistant · just now</div>
+          </div>
+        </div>
+      </main>
+
+      <div class="composer">
+        <div class="input">
+          <textarea id="input" placeholder="Type your message..." aria-label="Message input"></textarea>
+        </div>
+        <button class="send" id="sendBtn">Send</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const messages = document.getElementById('messages');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+
+    function formatTime(date){
+      const hh = String(date.getHours()).padStart(2,'0');
+      const mm = String(date.getMinutes()).padStart(2,'0');
+      return hh + ':' + mm;
+    }
+
+    function appendMessage({who='assistant', text, time=new Date()}){
+      const row = document.createElement('div');
+      row.className = 'msg-row ' + who;
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar ' + who;
+      avatar.textContent = who === 'user' ? 'U' : 'A';
+      const container = document.createElement('div');
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble ' + who;
+      bubble.innerHTML = text.replace(/\n/g,'<br>');
+      const meta = document.createElement('div');
+      meta.className = 'meta';
+      meta.textContent = (who === 'user' ? 'you' : 'assistant') + ' · ' + formatTime(time);
+      container.appendChild(bubble);
+      container.appendChild(meta);
+      if(who === 'user'){
+        row.appendChild(container);
+        row.appendChild(avatar);
+        row.style.justifyContent = 'flex-end';
+      } else {
+        row.appendChild(avatar);
+        row.appendChild(container);
+      }
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function showTyping(){
+      const row = document.createElement('div');
+      row.className = 'msg-row assistant';
+      row.id = 'typingRow';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar assistant'; avatar.textContent = 'A';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble assistant';
+      bubble.innerHTML = '<span class="typing"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+      row.appendChild(avatar);
+      const container = document.createElement('div');
+      container.appendChild(bubble);
+      row.appendChild(container);
+      messages.appendChild(row);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    function removeTyping(){
+      const el = document.getElementById('typingRow');
+      if(el) el.remove();
+    }
+
+    function fakeAssistantReply(userText){
+      showTyping();
+      setTimeout(()=>{
+        removeTyping();
+        const reply = generateReply(userText);
+        appendMessage({who:'assistant', text:reply});
+      }, 700 + Math.min(2000, userText.length * 30));
+    }
+
+    function generateReply(input){
+      if(!input.trim()) return "I'm not sure what you mean. Try typing something else.";
+      if(/hello|hi|hey/i.test(input)) return 'Hi there! How can I help you today?';
+      if(/help|how to|how do/i.test(input)) return 'Tell me whats you need help with, and I will do my best to assist you.';
+      if(/mental health|depression|stress|anxiety/i.test(input)){
+        return "It's important to care for your mental health. Here are some helpful tips:<br>\n- Talk to someone you trust about how you feel.<br>\n- Take breaks and practice relaxation techniques.<br>\n- Stay active and try light exercise.<br>\n- Seek professional help if feelings become overwhelming.<br><br>You're not alone, and reaching out is a strong first step.";
+      }
+      return "You said:\n" + input;
+    }
+
+    sendBtn.addEventListener('click', ()=>{
+      const text = input.value.trim();
+      if(!text) return;
+      appendMessage({who:'user', text});
+      input.value = '';
+      fakeAssistantReply(text);
+      input.focus();
+    });
+
+    input.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        sendBtn.click();
+      }
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      messages.innerHTML = '';
+      appendMessage({who:'assistant', text:'Conversation cleared. Say hi!'});
+    });
+
+    window.addEventListener('load', ()=> input.focus());
+  </script>
+</body>
+</html>
+
